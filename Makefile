@@ -1,6 +1,7 @@
 # The driver is compiled in different ways, depending on what chip we are
 # compiling for.
-STM_CHIP_SET    = STM32F40_41xxx
+
+STM_CHIP_SET=STM32F40_41xxx
 STM_DRIVER_PATH = $(HOME)/Documents/archives/STM32F4xx_DSP_StdPeriph_Lib_V1.3.0/Libraries/STM32F4xx_StdPeriph_Driver
 STM_DRIVER_HDRS_STD = stm32f4xx_adc.h \
 					  stm32f4xx_crc.h \
@@ -52,10 +53,10 @@ STM_DRIVER_SRCS = $(patsubst %.h, $(STM_DRIVER_PATH)/src/%.c, $(STM_DRIVER_HDRS_
 ifeq ($(STM_CHIP_SET), STM32F40_41xxx)
 	STM_DRIVER_SRCS += $(patsubst %.h, $(STM_DRIVER_PATH)/src/%.c, $(STM_DRIVER_HDRS_F40_41))
 endif
-ifeq ($(STM_CHIP_SET), STM32F427_437xxx)
+ifeq ($(STM_CHIP_SET), STM32F427_437xx)
 	STM_DRIVER_SRCS += $(patsubst %.h, $(STM_DRIVER_PATH)/src/%.c, $(STM_DRIVER_HDRS_F427_437))
 endif
-ifeq ($(STM_CHIP_SET), STM32F429_439xxx)
+ifeq ($(STM_CHIP_SET), STM32F429_439xx)
 	STM_DRIVER_SRCS += $(patsubst %.h, $(STM_DRIVER_PATH)/src/%.c, $(STM_DRIVER_HDRS_F429_439))
 endif
 
@@ -84,7 +85,7 @@ BIN = main.elf
 
 # building for stm32f407 which is part of the family of chips with similar
 # peripherals, therefore the following is defined
-DEFS    = USE_STDPERIPH_DRIVER STM32F40_41xxx #STM32F429_439xx
+DEFS    = USE_STDPERIPH_DRIVER $(STM_CHIP_SET)#STM32F429_439xx
 CFLAGS  = -g3 -Wall -ffunction-sections -fdata-sections
 CFLAGS += -mlittle-endian -mthumb -mcpu=cortex-m4 -mthumb-interwork
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O0
