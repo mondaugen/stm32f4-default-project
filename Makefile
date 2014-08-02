@@ -47,15 +47,25 @@ STM_DRIVER_HDRS_F429_439 = stm32f4xx_cryp.h \
 						   stm32f4xx_fmc.h \
 						   stm32f4xx_ltdc.h \
 						   stm32f4xx_sai.h
+STM_DRIVER_SRCS = $(patsubst %.h, $(STM_DRIVER_PATH)/src/%.c, $(STM_DRIVER_HDRS_STD))
 
-STM_DRIVER_SRCS = $(wildcard $(STM_DRIVER_PATH)/src/*.c) 
+ifeq ($(STM_CHIP_SET), STM32F40_41xxx)
+	STM_DRIVER_SRCS += $(patsubst %.h, $(STM_DRIVER_PATH)/src/%.c, $(STM_DRIVER_HDRS_F40_41))
+endif
+ifeq ($(STM_CHIP_SET), STM32F427_437xxx)
+	STM_DRIVER_SRCS += $(patsubst %.h, $(STM_DRIVER_PATH)/src/%.c, $(STM_DRIVER_HDRS_F427_437))
+endif
+ifeq ($(STM_CHIP_SET), STM32F429_439xxx)
+	STM_DRIVER_SRCS += $(patsubst %.h, $(STM_DRIVER_PATH)/src/%.c, $(STM_DRIVER_HDRS_F429_439))
+endif
+
 STM_DRIVER_OBJS = $(STM_DRIVER_SRCS:$(STM_DRIVER_PATH)/src/%.c=objs/%.o)
 STM_DRIVER_INC  = $(STM_DRIVER_PATH)/inc
 STM_DRIVER_DEP  = inc/stm32f4xx_conf.h inc/stm32f4xx.h $(wildcard $(STM_DRIVER_INC)*.h)
 
 CMSIS_PATH = $(HOME)/Documents/archives/CMSIS
 
-PROJ_INC_PATH = inc
+PROJ_INC_PATH = ./inc
 
 INC  = $(PROJ_INC_PATH) $(CMSIS_PATH)/Include $(STM_DRIVER_INC)
 
@@ -74,36 +84,41 @@ BIN = main.elf
 
 # building for stm32f407 which is part of the family of chips with similar
 # peripherals, therefore the following is defined
-DEFS    = STM32F40_41xxx #STM32F429_439xx
-CFLAGS  = -g3 -O0 -Wall -Tstm32_flash.ld 
+DEFS    = USE_STDPERIPH_DRIVER STM32F40_41xxx #STM32F429_439xx
+CFLAGS  = -g3 -Wall -ffunction-sections -fdata-sections
 CFLAGS += -mlittle-endian -mthumb -mcpu=cortex-m4 -mthumb-interwork
-CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O0
 CFLAGS += $(foreach inc,$(INC),-I$(inc))
 CFLAGS += $(foreach def,$(DEFS),-D$(def))
+
+LDSCRIPT = stm32f407VG_flash.ld
+LDFLAGS = -T $(LDSCRIPT) -Xlinker --gc-sections
 
 CC = arm-none-eabi-gcc
 
 OCD	= sudo openocd \
 		-f /usr/share/openocd/scripts/board/stm32f4discovery.cfg
 
+all: proj
+
 driver: $(STM_DRIVER_OBJS)
 
-proj: $(PROJ_OBJS)
+proj: $(BIN)
 
 # compile stm driver
 $(STM_DRIVER_OBJS): objs/%.o: $(STM_DRIVER_PATH)/src/%.c $(STM_DRIVER_DEP)
 	$(CC) -c $(CFLAGS) $< -o $@
 
 # compile asm
-$(PROJ_OBJS_ASM): objs/%.o: $(PROJ_SRCS_PATH)/src/%.s $(PROJ_DEP)
+$(PROJ_OBJS_ASM): objs/%.o: $(PROJ_SRCS_PATH)/%.s $(PROJ_DEP)
 	$(CC) -c $(CFLAGS) $< -o $@
 
 # compile c
-$(PROJ_OBJS): objs/%.o: $(PROJ_SRCS_PATH)/src/%.c $(PROJ_DEP)
+$(PROJ_OBJS): objs/%.o: $(PROJ_SRCS_PATH)/%.c $(PROJ_DEP)
 	$(CC) -c $(CFLAGS) $< -o $@
 
 $(BIN): $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
 flash: $(BIN)
 	$(OCD) -c init \
@@ -111,3 +126,6 @@ flash: $(BIN)
 	    -c "flash write_image erase $(BIN)" \
 		-c "reset run" \
 	    -c shutdown
+
+clean:
+	rm objs/*

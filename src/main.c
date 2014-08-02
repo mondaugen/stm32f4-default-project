@@ -1,5 +1,7 @@
 int main(void)
 {
+    int i;
+    i = 1;
     while(1);
-    return 0;
+    return i;
 }
